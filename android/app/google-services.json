@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "397715137176",
+    "project_id": "madinatyconnect",
+    "storage_bucket": "madinatyconnect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397715137176:android:9b0be3d0f581621c27e6ed",
+        "android_client_info": {
+          "package_name": "com.example.madinatyconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4V8dDiNvmM-6ErQl8r486HYZZUyGk7Bo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

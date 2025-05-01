@@ -1,0 +1,49 @@
+name: madinatyconnect
+description: "Smart civic engagement platform"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.7.2 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ✅ Firebase Core Setup
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.7.7
+  firebase_messaging: ^14.9.4
+
+  # ✅ Maps & Location
+  google_maps_flutter: ^2.2.6
+  location: ^5.0.3
+  flutter_map: ^6.1.0
+  latlong2: 0.9.1
+
+
+  # ✅ UI & Utility Packages
+  provider: ^6.1.2
+  image_picker: ^0.8.7+5
+  google_fonts: ^6.1.0
+  url_launcher: ^6.1.11
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0  # ✅ Compatible with Flutter 3.7
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/images/
+  #   - assets/translations/
+
+  # fonts:
+  #   - family: CustomFont
+  #     fonts:
+  #       - asset: fonts/CustomFont-Regular.ttf
