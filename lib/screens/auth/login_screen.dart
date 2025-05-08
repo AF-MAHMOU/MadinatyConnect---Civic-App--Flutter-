@@ -5,6 +5,7 @@ import '../citizen/citizen_dashboard.dart';
 import '../government/admin_dashboard.dart';
 import '../advertiser/advertiser_dashboard.dart';
 import 'signup_screen.dart';
+import '../../utils/dark_mode_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -53,32 +54,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Password'),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(onPressed: login, child: Text('Login')),
-            TextButton(
-              onPressed:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SignupScreen()),
-                  ),
-              child: Text("Don't have an account? Sign Up"),
-            ),
-          ],
+    return DarkModeHelper.addDarkModeToggle(
+      Scaffold(
+        appBar: AppBar(title: Text('Login')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+              ),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'Password'),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(onPressed: login, child: Text('Login')),
+              TextButton(
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SignupScreen()),
+                    ),
+                child: Text("Don't have an account? Sign Up"),
+              ),
+            ],
+          ),
         ),
       ),
     );

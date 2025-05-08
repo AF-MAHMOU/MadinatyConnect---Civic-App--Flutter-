@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../auth/login_screen.dart';
+import '../../utils/dark_mode_helper.dart';
 
 class AdvertiserDashboard extends StatefulWidget {
   @override
@@ -11,7 +12,7 @@ class AdvertiserDashboard extends StatefulWidget {
 
 class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
   int _currentIndex = 0;
-  List<Widget> _tabs = []; // Safe initialization
+  List<Widget> _tabs = [];
 
   final TextEditingController _descController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
@@ -36,41 +37,46 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Advertiser Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
-      ),
-      body:
-          _tabs.isEmpty
-              ? Center(child: CircularProgressIndicator())
-              : _tabs[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'Submit Ad'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'My Ads'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Analytics',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+    return DarkModeHelper.addDarkModeToggle(
+      Scaffold(
+        appBar: AppBar(
+          title: Text('Advertiser Dashboard'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+        body:
+            _tabs.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : _tabs[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: Colors.blueAccent,
+          unselectedItemColor: Colors.grey,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.upload),
+              label: 'Submit Ad',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.list), label: 'My Ads'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: 'Analytics',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       ),
     );
   }

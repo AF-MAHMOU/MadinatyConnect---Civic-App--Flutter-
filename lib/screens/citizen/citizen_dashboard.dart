@@ -7,6 +7,7 @@ import 'home_screen.dart';
 import 'poll_screen.dart';
 import 'report_issue_screen.dart';
 import 'emergency_screen.dart';
+import '../../utils/dark_mode_helper.dart';
 
 class CitizenDashboard extends StatefulWidget {
   @override
@@ -25,41 +26,43 @@ class _CitizenDashboardState extends State<CitizenDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Citizen Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService().logout();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
-      ),
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Polls'),
-          BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Report'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emergency),
-            label: 'Emergency',
-          ),
-        ],
+    return DarkModeHelper.addDarkModeToggle(
+      Scaffold(
+        appBar: AppBar(
+          title: Text('Citizen Dashboard'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () async {
+                await AuthService().logout();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+        body: _screens[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: Colors.blueAccent,
+          unselectedItemColor: Colors.grey,
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+          elevation: 8,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Polls'),
+            BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Report'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.emergency),
+              label: 'Emergency',
+            ),
+          ],
+        ),
       ),
     );
   }

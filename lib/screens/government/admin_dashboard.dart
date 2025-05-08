@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
+import '../../utils/dark_mode_helper.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -15,53 +16,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _PollsTab(),
     _AdsApprovalTab(),
     _IssuesTab(),
-    _UserManagementTab(), // New tab
+    _UserManagementTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
-      ),
-      body: _tabs[_currentTab],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTab,
-        onTap: (index) => setState(() => _currentTab = index),
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.announcement),
-            label: 'Announcements',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Polls'),
-          BottomNavigationBarItem(icon: Icon(Icons.ad_units), label: 'Ads'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.report_problem),
-            label: 'Issues',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.manage_accounts),
-            label: 'Users',
-          ),
-        ],
+    return DarkModeHelper.addDarkModeToggle(
+      Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+        body: _tabs[_currentTab],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentTab,
+          onTap: (index) => setState(() => _currentTab = index),
+          selectedItemColor: Colors.blueAccent,
+          unselectedItemColor: Colors.grey,
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+          elevation: 8,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.announcement),
+              label: 'Announcements',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Polls'),
+            BottomNavigationBarItem(icon: Icon(Icons.ad_units), label: 'Ads'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.report_problem),
+              label: 'Issues',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.manage_accounts),
+              label: 'Users',
+            ),
+          ],
+        ),
       ),
     );
   }

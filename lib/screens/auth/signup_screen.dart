@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
+import '../../utils/dark_mode_helper.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -36,32 +37,34 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Sign Up')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Password'),
-            ),
-            DropdownButton<String>(
-              value: role,
-              onChanged: (val) => setState(() => role = val!),
-              items:
-                  ['citizen', 'advertiser']
-                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                      .toList(),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(onPressed: signup, child: Text('Register')),
-          ],
+    return DarkModeHelper.addDarkModeToggle(
+      Scaffold(
+        appBar: AppBar(title: Text('Sign Up')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+              ),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'Password'),
+              ),
+              DropdownButton<String>(
+                value: role,
+                onChanged: (val) => setState(() => role = val!),
+                items:
+                    ['citizen', 'advertiser']
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                        .toList(),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(onPressed: signup, child: Text('Register')),
+            ],
+          ),
         ),
       ),
     );
