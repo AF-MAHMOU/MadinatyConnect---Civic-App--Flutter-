@@ -12,7 +12,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _currentTab = 0;
   final List<Widget> _tabs = [
     _AnnouncementsTab(),
-    _PollsTab(),
+    _PollsTab(),  // Add the PollsTab here
     _AdsApprovalTab(),
     _IssuesTab(),
     _UserManagementTab(), // New tab
@@ -66,6 +66,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 }
+
 
 class _AnnouncementsTab extends StatelessWidget {
   final TextEditingController _titleController = TextEditingController();
@@ -122,8 +123,75 @@ class _AnnouncementsTab extends StatelessWidget {
   }
 }
 
-class _PollsTab extends StatelessWidget {
+class _PollsTab extends StatefulWidget {
+  @override
+  _PollsTabState createState() => _PollsTabState();
+}
+
+class _PollsTabState extends State<_PollsTab> {
   final TextEditingController _questionController = TextEditingController();
+  final List<TextEditingController> _optionControllers = [];
+  final List<String> _options = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _addNewOptionField();  // Start with one option field.
+  }
+
+  // Function to add a new option field
+  void _addNewOptionField() {
+    final optionController = TextEditingController();
+    _optionControllers.add(optionController);
+    setState(() {});
+  }
+
+  // Function to remove an option field
+  void _removeOptionField(int index) {
+    _optionControllers.removeAt(index);
+    setState(() {});
+  }
+
+  // Function to submit the poll
+  void _submitPoll() async {
+    if (_questionController.text.isEmpty || _options.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Please provide a question and at least one option')));
+      return;
+    }
+
+    // Prepare the poll data
+    final pollData = {
+      'question': _questionController.text,
+      'options': _options,
+      'endDate': Timestamp.fromDate(
+        DateTime.now().add(Duration(days: 7)), // Poll expires in 7 days
+      ),
+    };
+
+    try {
+      // Add the poll to Firestore
+      await FirebaseFirestore.instance.collection('polls').add(pollData);
+
+      // Clear the form
+      _questionController.clear();
+      _optionControllers.clear();
+      _options.clear();
+      _addNewOptionField();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Poll created successfully'),
+        backgroundColor: Colors.green, // Optional: Make it green for success
+      ));
+    } catch (e) {
+      // Handle errors and show an error message
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to create poll: $e'),
+        backgroundColor: Colors.red, // Optional: Make it red for errors
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,46 +199,70 @@ class _PollsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // Question input field
           TextField(
             controller: _questionController,
             decoration: InputDecoration(labelText: 'Question'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance.collection('polls').add({
-                'question': _questionController.text,
-                'options': ['Yes', 'No'],
-                'endDate': Timestamp.fromDate(
-                  DateTime.now().add(Duration(days: 7)),
-                ),
-              });
-            },
-            child: Text('Create Poll'),
+          SizedBox(height: 10),
+          
+          // Dynamic option input fields
+          Column(
+            children: _optionControllers.map((controller) {
+              int index = _optionControllers.indexOf(controller);
+              return Row(
+                children: [
+                  // Option input field
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      decoration: InputDecoration(labelText: 'Option ${index + 1}'),
+                      onChanged: (value) {
+                        // Update the options list as the user types
+                        if (value.isEmpty) {
+                          _options.removeAt(index);
+                        } else {
+                          if (index >= _options.length) {
+                            _options.add(value);
+                          } else {
+                            _options[index] = value;
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                  // Remove option button
+                  IconButton(
+                    icon: Icon(Icons.remove),
+                    onPressed: () => _removeOptionField(index),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('polls').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return CircularProgressIndicator();
-                return ListView.builder(
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    var poll = snapshot.data!.docs[index];
-                    return ListTile(
-                      title: Text(poll['question']),
-                      subtitle: Text('Options: ${poll['options'].join(', ')}'),
-                    );
-                  },
-                );
-              },
-            ),
+          
+          SizedBox(height: 10),
+          
+          // Button to add new option field
+          ElevatedButton(
+            onPressed: _addNewOptionField,
+            child: Text('Add Option'),
+          ),
+          
+          SizedBox(height: 10),
+          
+          // Button to submit the poll
+          ElevatedButton(
+            onPressed: _submitPoll,
+            child: Text('Create Poll'),
           ),
         ],
       ),
     );
   }
 }
+
+
 
 class _AdsApprovalTab extends StatelessWidget {
   @override
