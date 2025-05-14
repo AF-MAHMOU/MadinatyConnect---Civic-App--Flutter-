@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
 
   # ✅ Firebase Core Setup
   firebase_core: ^2.32.0
