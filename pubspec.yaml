@@ -18,6 +18,7 @@ dependencies:
   cloud_firestore: ^4.17.5
   firebase_storage: ^11.7.7
   firebase_messaging: ^14.9.4
+  timeago: ^3.3.0
 
   # ✅ Maps & Location
   google_maps_flutter: ^2.2.6
