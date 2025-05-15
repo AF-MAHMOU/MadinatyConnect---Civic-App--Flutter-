@@ -68,9 +68,67 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 
-class _AnnouncementsTab extends StatelessWidget {
+class _AnnouncementsTab extends StatefulWidget {
+  @override
+  State<_AnnouncementsTab> createState() => _AnnouncementsTabState();
+}
+
+class _AnnouncementsTabState extends State<_AnnouncementsTab> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+
+  String? _editingDocId;
+
+  void _startEdit(DocumentSnapshot doc) {
+    _editingDocId = doc.id;
+    _titleController.text = doc['title'];
+    _contentController.text = doc['description'];
+    setState(() {});
+  }
+
+  void _cancelEdit() {
+    _editingDocId = null;
+    _titleController.clear();
+    _contentController.clear();
+    setState(() {});
+  }
+
+  Future<void> _saveAnnouncement() async {
+    final data = {
+      'title': _titleController.text.trim(),
+      'description': _contentController.text.trim(),
+      'date': Timestamp.now(),
+    };
+
+    if (_editingDocId != null) {
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .doc(_editingDocId)
+          .update(data);
+    } else {
+      await FirebaseFirestore.instance.collection('announcements').add(data);
+    }
+
+    _cancelEdit();
+  }
+
+  Future<void> _deleteAnnouncement(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Delete Announcement'),
+        content: Text('Are you sure you want to delete this announcement?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Delete')),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('announcements').doc(id).delete();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,41 +136,48 @@ class _AnnouncementsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          TextField(
-            controller: _titleController,
-            decoration: InputDecoration(labelText: 'Title'),
+          Text(
+            _editingDocId != null ? 'Edit Announcement' : 'Post New Announcement',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
-          TextField(
-            controller: _contentController,
-            decoration: InputDecoration(labelText: 'Content'),
+          SizedBox(height: 8),
+          TextField(controller: _titleController, decoration: InputDecoration(labelText: 'Title')),
+          SizedBox(height: 8),
+          TextField(controller: _contentController, decoration: InputDecoration(labelText: 'Content')),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: _saveAnnouncement,
+                child: Text(_editingDocId != null ? 'Update' : 'Post'),
+              ),
+              if (_editingDocId != null)
+                TextButton(onPressed: _cancelEdit, child: Text('Cancel')),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance.collection('announcements').add({
-                'title': _titleController.text,
-                'description': _contentController.text,
-                'date': Timestamp.now(),
-              });
-            },
-            child: Text('Post Announcement'),
-          ),
+          Divider(),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('announcements')
-                      .snapshots(),
+              stream: FirebaseFirestore.instance.collection('announcements').orderBy('date', descending: true).snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return CircularProgressIndicator();
-                return ListView.builder(
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    var doc = snapshot.data!.docs[index];
-                    return ListTile(
-                      title: Text(doc['title']),
-                      subtitle: Text(doc['description']),
+                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                return ListView(
+                  children: snapshot.data!.docs.map((doc) {
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(doc['title']),
+                        subtitle: Text(doc['description']),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(icon: Icon(Icons.edit), onPressed: () => _startEdit(doc)),
+                            IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteAnnouncement(doc.id)),
+                          ],
+                        ),
+                      ),
                     );
-                  },
+                  }).toList(),
                 );
               },
             ),
@@ -122,7 +187,6 @@ class _AnnouncementsTab extends StatelessWidget {
     );
   }
 }
-
 class _PollsTab extends StatefulWidget {
   @override
   _PollsTabState createState() => _PollsTabState();
@@ -132,64 +196,92 @@ class _PollsTabState extends State<_PollsTab> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _optionControllers = [];
   final List<String> _options = [];
+  String? _editingPollId;
 
   @override
   void initState() {
     super.initState();
-    _addNewOptionField();  // Start with one option field.
+    _addNewOptionField();
   }
 
-  // Function to add a new option field
-  void _addNewOptionField() {
-    final optionController = TextEditingController();
-    _optionControllers.add(optionController);
+  void _addNewOptionField([String? value]) {
+    final controller = TextEditingController(text: value);
+    _optionControllers.add(controller);
+    if (value != null) _options.add(value);
     setState(() {});
   }
 
-  // Function to remove an option field
   void _removeOptionField(int index) {
     _optionControllers.removeAt(index);
+    if (index < _options.length) _options.removeAt(index);
     setState(() {});
   }
 
-  // Function to submit the poll
-  void _submitPoll() async {
-    if (_questionController.text.isEmpty || _options.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Please provide a question and at least one option')));
+  void _startEditPoll(DocumentSnapshot doc) {
+    _editingPollId = doc.id;
+    _questionController.text = doc['question'];
+    _options.clear();
+    _optionControllers.clear();
+
+    for (var option in List<String>.from(doc['options'])) {
+      _addNewOptionField(option);
+    }
+
+    setState(() {});
+  }
+
+  void _cancelEditPoll() {
+    _editingPollId = null;
+    _questionController.clear();
+    _optionControllers.clear();
+    _options.clear();
+    _addNewOptionField();
+    setState(() {});
+  }
+
+  Future<void> _submitPoll() async {
+    final question = _questionController.text.trim();
+    _options.clear();
+    for (var c in _optionControllers) {
+      if (c.text.trim().isNotEmpty) _options.add(c.text.trim());
+    }
+
+    if (question.isEmpty || _options.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Enter a question and at least two options.')));
       return;
     }
 
-    // Prepare the poll data
     final pollData = {
-      'question': _questionController.text,
+      'question': question,
       'options': _options,
-      'endDate': Timestamp.fromDate(
-        DateTime.now().add(Duration(days: 7)), // Poll expires in 7 days
-      ),
+      'endDate': Timestamp.fromDate(DateTime.now().add(Duration(days: 7))),
     };
 
-    try {
-      // Add the poll to Firestore
+    if (_editingPollId != null) {
+      await FirebaseFirestore.instance.collection('polls').doc(_editingPollId).update(pollData);
+    } else {
       await FirebaseFirestore.instance.collection('polls').add(pollData);
+    }
 
-      // Clear the form
-      _questionController.clear();
-      _optionControllers.clear();
-      _options.clear();
-      _addNewOptionField();
+    _cancelEditPoll();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Poll saved successfully')));
+  }
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Poll created successfully'),
-        backgroundColor: Colors.green, // Optional: Make it green for success
-      ));
-    } catch (e) {
-      // Handle errors and show an error message
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to create poll: $e'),
-        backgroundColor: Colors.red, // Optional: Make it red for errors
-      ));
+  Future<void> _deletePoll(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Delete Poll'),
+        content: Text('Are you sure you want to delete this poll?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Delete')),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('polls').doc(id).delete();
     }
   }
 
@@ -199,62 +291,63 @@ class _PollsTabState extends State<_PollsTab> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Question input field
-          TextField(
-            controller: _questionController,
-            decoration: InputDecoration(labelText: 'Question'),
+          Text(
+            _editingPollId != null ? 'Edit Poll' : 'Create New Poll',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
-          SizedBox(height: 10),
-          
-          // Dynamic option input fields
+          TextField(controller: _questionController, decoration: InputDecoration(labelText: 'Question')),
+          SizedBox(height: 8),
           Column(
             children: _optionControllers.map((controller) {
               int index = _optionControllers.indexOf(controller);
               return Row(
                 children: [
-                  // Option input field
                   Expanded(
                     child: TextField(
                       controller: controller,
                       decoration: InputDecoration(labelText: 'Option ${index + 1}'),
-                      onChanged: (value) {
-                        // Update the options list as the user types
-                        if (value.isEmpty) {
-                          _options.removeAt(index);
-                        } else {
-                          if (index >= _options.length) {
-                            _options.add(value);
-                          } else {
-                            _options[index] = value;
-                          }
-                        }
-                      },
                     ),
                   ),
-                  // Remove option button
-                  IconButton(
-                    icon: Icon(Icons.remove),
-                    onPressed: () => _removeOptionField(index),
-                  ),
+                  IconButton(icon: Icon(Icons.remove), onPressed: () => _removeOptionField(index)),
                 ],
               );
             }).toList(),
           ),
-          
-          SizedBox(height: 10),
-          
-          // Button to add new option field
-          ElevatedButton(
-            onPressed: _addNewOptionField,
-            child: Text('Add Option'),
+          Row(
+            children: [
+              ElevatedButton(onPressed: _addNewOptionField, child: Text('Add Option')),
+              SizedBox(width: 12),
+              ElevatedButton(onPressed: _submitPoll, child: Text(_editingPollId != null ? 'Update' : 'Create Poll')),
+              if (_editingPollId != null)
+                TextButton(onPressed: _cancelEditPoll, child: Text('Cancel')),
+            ],
           ),
-          
-          SizedBox(height: 10),
-          
-          // Button to submit the poll
-          ElevatedButton(
-            onPressed: _submitPoll,
-            child: Text('Create Poll'),
+          Divider(),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('polls').orderBy('endDate').snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                return ListView(
+                  children: snapshot.data!.docs.map((doc) {
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(doc['question']),
+                        subtitle: Text('Options: ${List<String>.from(doc['options']).join(', ')}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(icon: Icon(Icons.edit), onPressed: () => _startEditPoll(doc)),
+                            IconButton(icon: Icon(Icons.delete), onPressed: () => _deletePoll(doc.id)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ),
         ],
       ),
