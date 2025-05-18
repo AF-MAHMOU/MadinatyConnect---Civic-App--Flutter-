@@ -13,17 +13,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentTab = 0;
-
-  final List<Widget> _tabs = [
-    _AnnouncementsTab(),
-    _PollsTab(),  // Add the PollsTab here
-    _AdsApprovalTab(),
-    _IssuesTab(),
-    _UserManagementTab(), // New tab
-  ];
-
   bool _isLoading = false;
-
 
   String _getAppBarTitle() {
     switch (_currentTab) {
@@ -282,14 +272,6 @@ class _AnnouncementsTab extends StatefulWidget {
   _AnnouncementsTabState createState() => _AnnouncementsTabState();
 }
 
-
-class _AnnouncementsTab extends StatefulWidget {
-  @override
-  State<_AnnouncementsTab> createState() => _AnnouncementsTabState();
-}
-
-
- 
 class _AnnouncementsTabState extends State<_AnnouncementsTab> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -372,59 +354,6 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
     super.dispose();
   }
 
-  String? _editingDocId;
-
-  void _startEdit(DocumentSnapshot doc) {
-    _editingDocId = doc.id;
-    _titleController.text = doc['title'];
-    _contentController.text = doc['description'];
-    setState(() {});
-  }
-
-  void _cancelEdit() {
-    _editingDocId = null;
-    _titleController.clear();
-    _contentController.clear();
-    setState(() {});
-  }
-
-  Future<void> _saveAnnouncement() async {
-    final data = {
-      'title': _titleController.text.trim(),
-      'description': _contentController.text.trim(),
-      'date': Timestamp.now(),
-    };
-
-    if (_editingDocId != null) {
-      await FirebaseFirestore.instance
-          .collection('announcements')
-          .doc(_editingDocId)
-          .update(data);
-    } else {
-      await FirebaseFirestore.instance.collection('announcements').add(data);
-    }
-
-    _cancelEdit();
-  }
-
-  Future<void> _deleteAnnouncement(String id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Delete Announcement'),
-        content: Text('Are you sure you want to delete this announcement?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Delete')),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('announcements').doc(id).delete();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -432,47 +361,6 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
-          Text(
-            _editingDocId != null ? 'Edit Announcement' : 'Post New Announcement',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          SizedBox(height: 8),
-          TextField(controller: _titleController, decoration: InputDecoration(labelText: 'Title')),
-          SizedBox(height: 8),
-          TextField(controller: _contentController, decoration: InputDecoration(labelText: 'Content')),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              ElevatedButton(
-                onPressed: _saveAnnouncement,
-                child: Text(_editingDocId != null ? 'Update' : 'Post'),
-              ),
-              if (_editingDocId != null)
-                TextButton(onPressed: _cancelEdit, child: Text('Cancel')),
-            ],
-          ),
-          Divider(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('announcements').orderBy('date', descending: true).snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-                return ListView(
-                  children: snapshot.data!.docs.map((doc) {
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        title: Text(doc['title']),
-                        subtitle: Text(doc['description']),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(icon: Icon(Icons.edit), onPressed: () => _startEdit(doc)),
-                            IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteAnnouncement(doc.id)),
-                          ],
-                        ),
-
           Card(
             child: ExpansionTile(
               title: Text(
@@ -651,10 +539,9 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                             ],
                           ),
                         ),
-
                       ),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
@@ -664,103 +551,6 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
     );
   }
 }
-class _PollsTab extends StatefulWidget {
-  @override
-  _PollsTabState createState() => _PollsTabState();
-}
-
-
-class _PollsTabState extends State<_PollsTab> {
-  final TextEditingController _questionController = TextEditingController();
-  final List<TextEditingController> _optionControllers = [];
-  final List<String> _options = [];
-  String? _editingPollId;
-
-  @override
-  void initState() {
-    super.initState();
-    _addNewOptionField();
-  }
-
-  void _addNewOptionField([String? value]) {
-    final controller = TextEditingController(text: value);
-    _optionControllers.add(controller);
-    if (value != null) _options.add(value);
-    setState(() {});
-  }
-
-  void _removeOptionField(int index) {
-    _optionControllers.removeAt(index);
-    if (index < _options.length) _options.removeAt(index);
-    setState(() {});
-  }
-
-  void _startEditPoll(DocumentSnapshot doc) {
-    _editingPollId = doc.id;
-    _questionController.text = doc['question'];
-    _options.clear();
-    _optionControllers.clear();
-
-    for (var option in List<String>.from(doc['options'])) {
-      _addNewOptionField(option);
-    }
-
-    setState(() {});
-  }
-
-  void _cancelEditPoll() {
-    _editingPollId = null;
-    _questionController.clear();
-    _optionControllers.clear();
-    _options.clear();
-    _addNewOptionField();
-    setState(() {});
-  }
-
-  Future<void> _submitPoll() async {
-    final question = _questionController.text.trim();
-    _options.clear();
-    for (var c in _optionControllers) {
-      if (c.text.trim().isNotEmpty) _options.add(c.text.trim());
-    }
-
-    if (question.isEmpty || _options.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Enter a question and at least two options.')));
-      return;
-    }
-
-    final pollData = {
-      'question': question,
-      'options': _options,
-      'endDate': Timestamp.fromDate(DateTime.now().add(Duration(days: 7))),
-    };
-
-    if (_editingPollId != null) {
-      await FirebaseFirestore.instance.collection('polls').doc(_editingPollId).update(pollData);
-    } else {
-      await FirebaseFirestore.instance.collection('polls').add(pollData);
-    }
-
-    _cancelEditPoll();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Poll saved successfully')));
-  }
-
-  Future<void> _deletePoll(String id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Delete Poll'),
-        content: Text('Are you sure you want to delete this poll?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Delete')),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('polls').doc(id).delete();
-    }
 
 class _PollsTab extends StatefulWidget {
   @override
@@ -960,7 +750,6 @@ class _PollsTabState extends State<_PollsTab> {
         ),
       ),
     );
-
   }
 
   @override
@@ -970,58 +759,6 @@ class _PollsTabState extends State<_PollsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
-          Text(
-            _editingPollId != null ? 'Edit Poll' : 'Create New Poll',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          TextField(controller: _questionController, decoration: InputDecoration(labelText: 'Question')),
-          SizedBox(height: 8),
-          Column(
-            children: _optionControllers.map((controller) {
-              int index = _optionControllers.indexOf(controller);
-              return Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(labelText: 'Option ${index + 1}'),
-                    ),
-                  ),
-                  IconButton(icon: Icon(Icons.remove), onPressed: () => _removeOptionField(index)),
-                ],
-              );
-            }).toList(),
-          ),
-          Row(
-            children: [
-              ElevatedButton(onPressed: _addNewOptionField, child: Text('Add Option')),
-              SizedBox(width: 12),
-              ElevatedButton(onPressed: _submitPoll, child: Text(_editingPollId != null ? 'Update' : 'Create Poll')),
-              if (_editingPollId != null)
-                TextButton(onPressed: _cancelEditPoll, child: Text('Cancel')),
-            ],
-          ),
-          Divider(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('polls').orderBy('endDate').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-                return ListView(
-                  children: snapshot.data!.docs.map((doc) {
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        title: Text(doc['question']),
-                        subtitle: Text('Options: ${List<String>.from(doc['options']).join(', ')}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(icon: Icon(Icons.edit), onPressed: () => _startEditPoll(doc)),
-                            IconButton(icon: Icon(Icons.delete), onPressed: () => _deletePoll(doc.id)),
-                          ],
-
           Card(
             child: ExpansionTile(
               title: Text(
@@ -1178,11 +915,10 @@ class _PollsTabState extends State<_PollsTab> {
                               }).toList(),
                             ],
                           ),
-
                         ),
                       ),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
@@ -1192,11 +928,6 @@ class _PollsTabState extends State<_PollsTab> {
     );
   }
 }
-
-
-
-
-class _AdsApprovalTab extends StatelessWidget {
 
 class _AdsApprovalTab extends StatefulWidget {
   @override
@@ -1218,7 +949,6 @@ class _AdsApprovalTabState extends State<_AdsApprovalTab> with SingleTickerProvi
     _tabController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {

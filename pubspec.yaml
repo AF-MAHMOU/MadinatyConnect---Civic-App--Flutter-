@@ -5,13 +5,10 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.7.2 <4.0.0'
-  flutter: '3.29.3'
 
 dependencies:
   flutter:
     sdk: flutter
-    
-
   flutter_localizations:
     sdk: flutter
 
@@ -21,7 +18,6 @@ dependencies:
   cloud_firestore: ^4.17.5
   firebase_storage: ^11.7.7
   firebase_messaging: ^14.9.4
-  timeago: ^3.3.0
 
   # ✅ Maps & Location
   google_maps_flutter: ^2.2.6

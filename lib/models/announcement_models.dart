@@ -8,7 +8,6 @@ class Announcement {
   final String? pdfUrl;
   final DateTime createdAt;
   final String postedBy; // user ID or "government"
- 
 
   Announcement({
     required this.id,
