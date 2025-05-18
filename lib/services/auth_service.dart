@@ -18,18 +18,24 @@ class AuthService {
     return AppUser.fromMap(userDoc.data() as Map<String, dynamic>, userDoc.id);
   }
 
-  Future<AppUser?> signup(String email, String password, String role) async {
+  Future<AppUser?> signup(String name, String email, String password, String role) async {
     UserCredential userCred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
     await _firestore.collection('users').doc(userCred.user!.uid).set({
+      'name': name,
       'email': email,
       'role': role,
     });
 
-    return AppUser(uid: userCred.user!.uid, email: email, role: role);
+    return AppUser(
+      uid: userCred.user!.uid,
+      name: name,
+      email: email,
+      role: role,
+    );
   }
 
   Future<void> logout() async {

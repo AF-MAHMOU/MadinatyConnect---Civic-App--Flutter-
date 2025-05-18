@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_localizations.dart';
+import '../../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -33,11 +34,13 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      await AuthService().signup(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+        'citizen', // Default role
       );
-      // Navigation will be handled by the auth state listener
+      // Navigation is handled by auth state listener
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -50,7 +53,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -70,7 +73,6 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Logo
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
@@ -78,7 +80,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   SizedBox(height: 32),
-                  // Welcome Text
                   Text(
                     localizations.translate('create_account'),
                     style: AppTheme.headlineLarge.copyWith(
@@ -93,7 +94,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 32),
-                  // Name Field
                   TextFormField(
                     controller: _nameController,
                     decoration: AppTheme.inputDecoration(
@@ -108,7 +108,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                   ),
                   SizedBox(height: 16),
-                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -127,7 +126,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                   ),
                   SizedBox(height: 16),
-                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -160,7 +158,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                   ),
                   SizedBox(height: 16),
-                  // Confirm Password Field
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
@@ -193,7 +190,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                   ),
                   SizedBox(height: 24),
-                  // Sign Up Button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _signup,
                     style: AppTheme.primaryButton,
@@ -210,7 +206,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         : Text(localizations.translate('sign_up')),
                   ),
                   SizedBox(height: 16),
-                  // Login Link
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text.rich(
