@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "staging": "madinatyconnect",
+    "default": "madinatyconnect"
+  },
+  "targets": {},
+  "etags": {}
+}
