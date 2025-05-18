@@ -9,6 +9,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       appBar: AppBar(
         title: Text('Madinaty Connect'),
       ),
@@ -85,6 +86,45 @@ class HomeScreen extends StatelessWidget {
             },
           ),
         ],
+
+      appBar: AppBar(title: const Text('Announcements')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream:
+            _firestore
+                .collection('announcements')
+                .orderBy('date', descending: true)
+                .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text('Error loading announcements: ${snapshot.error}'),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No announcements available.'));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              var announcement = snapshot.data!.docs[index];
+              return AnnouncementCard(
+                title: announcement['title'],
+                content: announcement['description'],
+                date: (announcement['date'] as Timestamp).toDate(),
+                attachments:
+                    (announcement.data() as Map<String, dynamic>?)
+                                ?.containsKey('attachments') ==
+                            true
+                        ? announcement['attachments']
+                        : [],
+                id: announcement.id,
+              );
+            },
+          );
+        },
+
       ),
     );
   }

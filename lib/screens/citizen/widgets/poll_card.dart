@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../utils/app_localizations.dart';
 
 class PollCard extends StatefulWidget {
   final String question;
@@ -19,30 +20,69 @@ class PollCard extends StatefulWidget {
 
 class _PollCardState extends State<PollCard> {
   Future<void> _vote(String option) async {
+    final localizations = AppLocalizations.of(context);
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
-      final pollRef = FirebaseFirestore.instance
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizations.translate('please_login_to_vote'))),
+        );
+        return;
+      }
+
+      // Check user role first
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists || userDoc.data()?['role'] != 'citizen') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizations.translate('only_citizens_can_vote'))),
+        );
+        return;
+      }
+
+      // Check if user has already voted
+      final voteDoc = await FirebaseFirestore.instance
           .collection('polls')
           .doc(widget.pollId)
           .collection('votes')
-          .doc(userId);
+          .doc(userId)
+          .get();
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        transaction.set(pollRef, {'option': option});
+      if (voteDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizations.translate('already_voted_in_poll'))),
+        );
+        return;
+      }
+
+      // Add the vote using the user's ID as the document ID
+      await FirebaseFirestore.instance
+          .collection('polls')
+          .doc(widget.pollId)
+          .collection('votes')
+          .doc(userId)
+          .set({
+        'option': option,
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Vote submitted!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizations.translate('vote_success'))),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error submitting vote: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${localizations.translate('vote_error')}: $e')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       margin: EdgeInsets.all(8),
       child: Padding(

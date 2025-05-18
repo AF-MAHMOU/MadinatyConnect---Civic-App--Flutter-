@@ -10,18 +10,20 @@ class EmergencyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children:
-          emergencyNumbers.entries.map((entry) {
-            return ListTile(
-              title: Text(entry.key),
-              subtitle: Text(entry.value),
-              trailing: IconButton(
-                icon: Icon(Icons.call),
-                onPressed: () => launch('tel:${entry.value}'),
-              ),
-            );
-          }).toList(),
+    return Scaffold(
+      appBar: AppBar(title: Text('Emergency Numbers')),
+      body: ListView(
+        children: emergencyNumbers.entries.map((entry) {
+          return ListTile(
+            title: Text(entry.key),
+            subtitle: Text(entry.value),
+            trailing: IconButton(
+              icon: Icon(Icons.call),
+              onPressed: () => launch('tel:${entry.value}'),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

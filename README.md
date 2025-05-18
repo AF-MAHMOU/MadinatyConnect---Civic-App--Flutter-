@@ -30,14 +30,9 @@ Start an emulator or connect a device, then run:
 
 
 Missing Features / Next Steps:
-
-- Citizen comments on announcements
-- Citizen comments on polls
-- Add multiple voting options to polls (WhatsApp-style)
 - Add poll expiration or voting limits
 - Messaging system between advertiser and admin
 - Messaging system between citizen and admin
-- Add dark mode toggle
-- Add Arabic translation and localization
+
 
 flutter run
