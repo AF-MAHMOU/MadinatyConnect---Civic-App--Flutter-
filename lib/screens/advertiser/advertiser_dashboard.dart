@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../auth/login_screen.dart';
 import '../../utils/dark_mode_helper.dart';
 import 'package:intl/intl.dart';
+import '../chat_request_screen.dart';
 
 class AdvertiserDashboard extends StatefulWidget {
   @override
@@ -18,6 +19,7 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
   final ImagePicker _picker = ImagePicker();
   XFile? _adImage;
   bool _isLoading = false;
+  final TextEditingController _messageController = TextEditingController();
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
@@ -40,6 +43,8 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
       case 2:
         return _buildAnalyticsTab();
       case 3:
+        return _buildChatTab();
+      case 4:
         return _buildProfileTab();
       default:
         return _buildSubmitAdTab();
@@ -90,6 +95,11 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
               label: 'Analytics',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.chat_outlined),
+              activeIcon: Icon(Icons.chat),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Profile',
@@ -109,6 +119,8 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
       case 2:
         return 'Analytics Dashboard';
       case 3:
+        return 'Help & Support';
+      case 4:
         return 'Advertiser Profile';
       default:
         return 'Advertiser Dashboard';
@@ -510,6 +522,10 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
     );
   }
 
+  Widget _buildChatTab() {
+    return ChatRequestScreen();
+  }
+
   Widget _buildProfileTab() {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -580,7 +596,12 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
                     title: Text('Help & Support'),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
-                      // TODO: Implement help & support
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatRequestScreen(),
+                        ),
+                      );
                     },
                   ),
                   Divider(height: 1),
@@ -669,6 +690,10 @@ class _AdvertiserDashboardState extends State<AdvertiserDashboard> {
       default:
         return Colors.orange;
     }
+  }
+
+  Future<void> _submitChatRequest() async {
+    // Implement the logic to submit a chat request
   }
 }
 
