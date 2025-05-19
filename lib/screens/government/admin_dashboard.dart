@@ -5,6 +5,11 @@ import '../auth/login_screen.dart';
 import '../../utils/dark_mode_helper.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
+import '../../services/auth_service.dart';
+import 'admin_chat_requests.dart';
+import '../../utils/app_localizations.dart';
+import '../../main.dart';
+import '../chat_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -15,38 +20,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _currentTab = 0;
   bool _isLoading = false;
 
+  final List<Widget> _screens = [
+    _OverviewTab(), // New overview tab
+    _PollsTab(),
+    _AdsApprovalTab(),
+    _IssuesTab(),
+    _UserManagementTab(),
+  ];
+
   String _getAppBarTitle() {
+    final localizations = AppLocalizations.of(context);
     switch (_currentTab) {
       case 0:
-        return 'Announcements';
+        return localizations.translate('overview');
       case 1:
-        return 'Community Polls';
+        return localizations.translate('polls');
       case 2:
-        return 'Advertisement Management';
+        return localizations.translate('ads');
       case 3:
-        return 'Issue Reports';
+        return localizations.translate('issues');
       case 4:
-        return 'User Management';
+        return localizations.translate('users');
       default:
-        return 'Admin Dashboard';
+        return localizations.translate('admin_dashboard');
     }
   }
 
-  Widget _getCurrentTab() {
-    switch (_currentTab) {
-      case 0:
-        return _AnnouncementsTab();
-      case 1:
-        return _PollsTab();
-      case 2:
-        return _AdsApprovalTab();
-      case 3:
-        return _IssuesTab();
-      case 4:
-        return _UserManagementTab();
-      default:
-        return _AnnouncementsTab();
-    }
+  void _showChatRequests() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AdminChatRequests()),
+    );
   }
 
   Future<void> _showLogoutDialog() async {
@@ -70,7 +74,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () async {
               setState(() => _isLoading = true);
               try {
-                await FirebaseAuth.instance.signOut();
+                await AuthService().logout();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => LoginScreen()),
@@ -102,168 +106,408 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    
     return DarkModeHelper.addDarkModeToggle(
       Scaffold(
         appBar: AppBar(
-          title: Text(
-            _getAppBarTitle(),
-          ),
-          elevation: 0,
+          title: Text(_getAppBarTitle()),
           actions: [
-            IconButton(
-              icon: Stack(
-                children: [
-                  Icon(Icons.notifications_outlined),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.error,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
-                      child: Text(
-                        '5',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chat_requests')
+                  .where('status', isEqualTo: 'pending')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                int pendingCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.chat),
+                      onPressed: _showChatRequests,
+                      tooltip: localizations.translate('chat_requests'),
                     ),
-                  ),
-                ],
-              ),
-              onPressed: () {
-                // TODO: Implement notifications
+                    if (pendingCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            pendingCount.toString(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
               },
-              tooltip: 'Notifications',
+            ),
+            IconButton(
+              icon: Icon(Icons.language),
+              onPressed: () {
+                final currentLocale = AppLocalizations.of(context).currentLanguage;
+                final newLocale = currentLocale == 'en' ? Locale('ar') : Locale('en');
+                MyApp.of(context)?.setLocale(newLocale);
+              },
             ),
             IconButton(
               icon: Icon(Icons.logout),
               onPressed: _showLogoutDialog,
-              tooltip: 'Logout',
             ),
           ],
         ),
-        body: _isLoading
-            ? Center(child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-              ))
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(16),
-                    color: Theme.of(context).cardColor,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Icon(
-                                _currentTab == 0
-                                    ? Icons.announcement
-                                    : _currentTab == 1
-                                        ? Icons.poll
-                                        : _currentTab == 2
-                                            ? Icons.ad_units
-                                            : _currentTab == 3
-                                                ? Icons.report_problem
-                                                : Icons.manage_accounts,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  _getAppBarTitle(),
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        _buildActionButton(),
-                      ],
-                    ),
-                  ),
-                  Expanded(child: _getCurrentTab()),
-                ],
-              ),
+        body: _screens[_currentTab],
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentTab,
-          onTap: (index) => setState(() => _currentTab = index),
+          selectedItemColor: AppTheme.primaryBlue,
+          unselectedItemColor: Colors.grey,
+          backgroundColor: Colors.white,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
-          items: const [
+          selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.announcement_outlined),
-              activeIcon: Icon(Icons.announcement),
-              label: 'Announcements',
+              icon: Icon(Icons.dashboard),
+              label: localizations.translate('overview'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.poll_outlined),
-              activeIcon: Icon(Icons.poll),
-              label: 'Polls',
+              icon: Icon(Icons.poll),
+              label: localizations.translate('polls'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.ad_units_outlined),
-              activeIcon: Icon(Icons.ad_units),
-              label: 'Ads',
+              icon: Icon(Icons.ad_units),
+              label: localizations.translate('ads'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.report_problem_outlined),
-              activeIcon: Icon(Icons.report_problem),
-              label: 'Issues',
+              icon: Icon(Icons.report_problem),
+              label: localizations.translate('issues'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.manage_accounts_outlined),
-              activeIcon: Icon(Icons.manage_accounts),
-              label: 'Users',
+              icon: Icon(Icons.manage_accounts),
+              label: localizations.translate('users'),
             ),
           ],
+          onTap: (index) => setState(() => _currentTab = index),
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, 'Active Chats'),
+          _buildActiveChats(),
+          SizedBox(height: 24),
+          _buildSectionTitle(context, 'Recent Announcements'),
+          _buildRecentAnnouncements(),
+          SizedBox(height: 24),
+          _buildSectionTitle(context, 'Active Polls'),
+          _buildActivePolls(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  Widget _buildActionButton() {
-    switch (_currentTab) {
-      case 0:
-        return Container();
-      case 1:
-        return Container();
-      case 2:
-        return Container();
-      case 3:
-        return ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Implement export issues
-          },
-          style: AppTheme.primaryButton,
-          icon: Icon(Icons.download),
-          label: Text('Export Issues'),
+  Widget _buildActiveChats() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('chats')
+          .where('status', isEqualTo: 'active')
+          .orderBy('lastMessageTime', descending: true)
+          .limit(5)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final chats = snapshot.data?.docs ?? [];
+        if (chats.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text('No active chats'),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: chats.map((chat) {
+            final data = chat.data() as Map<String, dynamic>;
+            final lastMessage = data['lastMessage'] ?? 'No messages';
+            final lastMessageTime = data['lastMessageTime'] as Timestamp?;
+            final citizenId = data['citizenId'] ?? '';
+
+            return Card(
+              margin: EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.primaryBlue,
+                  child: Icon(Icons.chat, color: Colors.white),
+                ),
+                title: StreamBuilder<DocumentSnapshot>(
+                  stream: citizenId.isNotEmpty
+                      ? FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(citizenId)
+                          .snapshots()
+                      : null,
+                  builder: (context, userSnapshot) {
+                    if (!userSnapshot.hasData || citizenId.isEmpty) {
+                      return Text('Unknown User');
+                    }
+                    final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
+                    return Text(userData?['name'] ?? 'Unknown User');
+                  },
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lastMessage,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      lastMessageTime != null
+                          ? DateFormat('MMM dd, HH:mm').format(lastMessageTime.toDate())
+                          : 'No time',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        chatId: chat.id,
+                        otherUserName: 'Citizen',
+                        otherUserId: citizenId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList(),
         );
-      case 4:
-        return ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Implement add user
-          },
-          style: AppTheme.primaryButton,
-          icon: Icon(Icons.person_add),
-          label: Text('Add User'),
+      },
+    );
+  }
+
+  Widget _buildRecentAnnouncements() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('date', descending: true)
+          .limit(3)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final announcements = snapshot.data?.docs ?? [];
+        if (announcements.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text('No announcements'),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: announcements.map((announcement) {
+            final data = announcement.data() as Map<String, dynamic>;
+            final timestamp = data['date'] as Timestamp?;
+
+            return Card(
+              margin: EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.primaryBlue,
+                  child: Icon(Icons.announcement, color: Colors.white),
+                ),
+                title: Text(
+                  data['title'] ?? 'No title',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data['description'] ?? 'No content',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      timestamp != null
+                          ? DateFormat('MMM dd, yyyy').format(timestamp.toDate())
+                          : 'No date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         );
-      default:
-        return Container();
-    }
+      },
+    );
+  }
+
+  Widget _buildActivePolls() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('polls')
+          .where('endDate', isGreaterThan: Timestamp.now())
+          .orderBy('endDate')
+          .limit(3)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final polls = snapshot.data?.docs ?? [];
+        if (polls.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text('No active polls'),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: polls.map((poll) {
+            final data = poll.data() as Map<String, dynamic>;
+            final options = List<String>.from(data['options'] ?? []);
+            final endDate = (data['endDate'] as Timestamp).toDate();
+            
+            return Card(
+              margin: EdgeInsets.only(bottom: 8),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.poll, color: AppTheme.primaryBlue),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                data['question'] ?? 'No question',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                'Ends on ${DateFormat('MMM dd, yyyy').format(endDate)}',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    ...options.map((option) => Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('polls')
+                            .doc(poll.id)
+                            .collection('votes')
+                            .where('option', isEqualTo: option)
+                            .snapshots(),
+                        builder: (context, votesSnapshot) {
+                          final votes = votesSnapshot.data?.docs.length ?? 0;
+                          return Row(
+                            children: [
+                              Expanded(child: Text(option)),
+                              Text('$votes votes'),
+                            ],
+                          );
+                        },
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 }
 
