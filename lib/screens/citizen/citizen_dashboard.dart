@@ -1,6 +1,7 @@
 // lib/screens/citizen/citizen_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:madinatyconnect/screens/chat_request_screen.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import 'home_screen.dart';
@@ -21,16 +22,17 @@ class _CitizenDashboardState extends State<CitizenDashboard> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    HomeScreen(),
-    PollScreen(),
-    ReportIssueScreen(),
-    EmergencyScreen(),
+    HomeScreen(),           // Index 0
+    PollScreen(),           // Index 1
+    ReportIssueScreen(),    // Index 2
+    ChatRequestScreen(),    // Index 3
+    EmergencyScreen(),      // Index 4
   ];
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    
+
     return DarkModeHelper.addDarkModeToggle(
       Scaffold(
         appBar: AppBar(
@@ -117,6 +119,7 @@ class _CitizenDashboardState extends State<CitizenDashboard> {
           type: BottomNavigationBarType.fixed,
           elevation: 8,
           selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+          onTap: (index) => setState(() => _currentIndex = index),
           items: [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
@@ -131,11 +134,15 @@ class _CitizenDashboardState extends State<CitizenDashboard> {
               label: localizations.translate('report'),
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.chat_outlined),
+              activeIcon: Icon(Icons.chat),
+              label: localizations.translate('chat'),
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.emergency),
               label: localizations.translate('emergency'),
             ),
           ],
-          onTap: (index) => setState(() => _currentIndex = index),
         ),
       ),
     );
