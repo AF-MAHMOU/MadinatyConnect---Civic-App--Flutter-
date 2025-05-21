@@ -8,6 +8,8 @@ import '../utils/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:convert';
+import '../services/text_moderation_service.dart';
+
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -145,6 +147,23 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
+     final isProfane = await TextModerationService.isProfane(text);
+  if (isProfane) {
+    // Show SnackBar for profanity instead of throwing exception
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Your message contains inappropriate content. Please revise your message.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+    return; // Exit the function without sending the message
+  }
     final messageId = DateTime.now().millisecondsSinceEpoch.toString();
     setState(() {
       _isSending = true;
