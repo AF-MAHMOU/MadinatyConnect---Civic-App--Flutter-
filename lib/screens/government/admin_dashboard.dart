@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
-import '../../utils/dark_mode_helper.dart';
 import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
 import '../../services/auth_service.dart';
@@ -10,7 +9,6 @@ import 'admin_chat_requests.dart';
 import '../../utils/app_localizations.dart';
 import '../../main.dart';
 import '../chat_screen.dart';
-import 'admin_create_announcement_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -21,32 +19,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _currentTab = 0;
   bool _isLoading = false;
 
-  final List<Widget> _screens = [
-    _OverviewTab(),
-    AdminCreateAnnouncementScreen(), // New overview tab
-    _PollsTab(),
-    _AdsApprovalTab(),
-    _IssuesTab(),
-    _UserManagementTab(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      _OverviewTab(),
+      _AnnouncementsTab(),
+      _PollsTab(),
+      _AdsApprovalTab(),
+      _IssuesTab(),
+      _UserManagementTab(),
+    ];
+  }
 
   String _getAppBarTitle() {
-    final localizations = AppLocalizations.of(context);
     switch (_currentTab) {
       case 0:
-        return localizations.translate('overview');
+        return 'Overview';
       case 1:
-         return localizations.translate('announcements');
+        return 'Announcements';
       case 2:
-        return localizations.translate('polls');
+        return 'Polls';
       case 3:
-        return localizations.translate('ads');
+        return 'Ads';
       case 4:
-        return localizations.translate('issues');
+        return 'Issues';
       case 5:
-        return localizations.translate('users');
+        return 'Users';
       default:
-        return localizations.translate('admin_dashboard');
+        return 'Admin Dashboard';
     }
   }
 
@@ -112,107 +115,102 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     
-    return DarkModeHelper.addDarkModeToggle(
-      Scaffold(
-        appBar: AppBar(
-          title: Text(_getAppBarTitle()),
-          actions: [
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chat_requests')
-                  .where('status', isEqualTo: 'pending')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                int pendingCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.chat),
-                      onPressed: _showChatRequests,
-                      tooltip: localizations.translate('chat_requests'),
-                    ),
-                    if (pendingCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_getAppBarTitle()),
+        actions: [
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('chat_requests')
+                .where('status', isEqualTo: 'pending')
+                .snapshots(),
+            builder: (context, snapshot) {
+              int pendingCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+              
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.chat),
+                    onPressed: _showChatRequests,
+                    tooltip: localizations.translate('chat_requests'),
+                  ),
+                  if (pendingCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 14,
+                          minHeight: 14,
+                        ),
+                        child: Text(
+                          pendingCount.toString(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
                           ),
-                          constraints: BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
-                          ),
-                          child: Text(
-                            pendingCount.toString(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                  ],
-                );
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.language),
-              onPressed: () {
-                final currentLocale = AppLocalizations.of(context).currentLanguage;
-                final newLocale = currentLocale == 'en' ? Locale('ar') : Locale('en');
-                MyApp.of(context)?.setLocale(newLocale);
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.logout),
-              onPressed: _showLogoutDialog,
-            ),
-          ],
-        ),
-        body: _screens[_currentTab],
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentTab,
-          selectedItemColor: AppTheme.primaryBlue,
-          unselectedItemColor: Colors.grey,
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-    ? Colors.grey[900]
-    : Colors.white,
-          type: BottomNavigationBarType.fixed,
-          elevation: 8,
-          selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: localizations.translate('overview'),
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.announcement),
-              label: localizations.translate('announcements'),
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.poll),
-              label: localizations.translate('polls'),
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.ad_units),
-              label: localizations.translate('ads'),
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.report_problem),
-              label: localizations.translate('issues'),
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.manage_accounts),
-              label: localizations.translate('users'),
-            ),
-          ],
-          onTap: (index) => setState(() => _currentTab = index),
-        ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _showLogoutDialog,
+          ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _currentTab,
+        children: _screens,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTab,
+        selectedItemColor: AppTheme.primaryBlue,
+        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Overview',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.announcement),
+            label: 'Announcements',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.poll),
+            label: 'Polls',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.ad_units),
+            label: 'Ads',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_problem),
+            label: 'Issues',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.manage_accounts),
+            label: 'Users',
+          ),
+        ],
+        onTap: (index) {
+          if (index >= 0 && index < _screens.length) {
+            setState(() => _currentTab = index);
+          }
+        },
       ),
     );
   }
@@ -539,6 +537,7 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
     setState(() {
       _isEditing = false;
       _editingId = null;
+      _isCreateExpanded = false;
     });
   }
 
@@ -548,6 +547,7 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
     setState(() {
       _isEditing = true;
       _editingId = doc.id;
+      _isCreateExpanded = true;
     });
   }
 
@@ -577,6 +577,7 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
         'title': _titleController.text.trim(),
         'description': _contentController.text.trim(),
         'date': Timestamp.now(),
+        'postedBy': 'government',
       };
 
       if (_isEditing && _editingId != null) {
@@ -616,12 +617,26 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: ExpansionTile(
               title: Text(
-                'Create Announcement',
-                style: Theme.of(context).textTheme.titleLarge,
+                _isEditing ? 'Edit Announcement' : 'Create Announcement',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              leading: Icon(Icons.add_circle_outline),
+              leading: Icon(
+                _isEditing ? Icons.edit : Icons.add_circle_outline,
+                color: AppTheme.primaryBlue,
+              ),
+              initiallyExpanded: _isCreateExpanded,
+              onExpansionChanged: (expanded) {
+                if (!expanded) _clearForm();
+              },
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -630,30 +645,47 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                     children: [
                       TextField(
                         controller: _titleController,
-                        decoration: AppTheme.inputDecoration('Title', hint: 'Enter a clear, concise title'),
+                        decoration: InputDecoration(
+                          labelText: 'Title',
+                          hintText: 'Enter a clear, concise title',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: Icon(Icons.title),
+                        ),
                       ),
                       SizedBox(height: 16),
                       TextField(
                         controller: _contentController,
                         maxLines: 5,
-                        decoration: AppTheme.inputDecoration(
-                          'Content',
-                          hint: 'Enter the announcement details...',
+                        decoration: InputDecoration(
+                          labelText: 'Content',
+                          hintText: 'Enter the announcement details...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignLabelWithHint: true,
                         ),
                       ),
                       SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          TextButton(
+                          TextButton.icon(
                             onPressed: _clearForm,
-                            child: Text('Clear'),
+                            icon: Icon(Icons.clear),
+                            label: Text('Clear'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton.icon(
                             onPressed: _saveAnnouncement,
                             icon: Icon(_isEditing ? Icons.save : Icons.send),
                             label: Text(_isEditing ? 'Update' : 'Post'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -666,13 +698,11 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
           SizedBox(height: 16),
           Text(
             'Recent Announcements',
-            style: TextStyle(
-              fontSize: 18,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(height: 8),
-          // Announcements List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -686,12 +716,23 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
 
                 if (snapshot.data!.docs.isEmpty) {
                   return Center(
-                    child: Text(
-                      'No announcements yet',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.announcement_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'No announcements yet',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -701,25 +742,41 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                   itemBuilder: (context, index) {
                     var doc = snapshot.data!.docs[index];
                     var date = (doc['date'] as Timestamp).toDate();
+
                     return Card(
                       margin: EdgeInsets.only(bottom: 8),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.primaryBlue.withOpacity(0.1),
+                          child: Icon(
+                            Icons.announcement,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
                         title: Text(
                           doc['title'],
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 4),
+                            SizedBox(height: 8),
                             Text(
                               doc['description'],
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: 4),
+                            SizedBox(height: 8),
                             Text(
-                              'Posted on ${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                              'Posted on ${DateFormat('MMM dd, yyyy').format(date)}',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 12,
@@ -731,7 +788,7 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
+                              icon: Icon(Icons.edit, color: AppTheme.primaryBlue),
                               onPressed: () => _editAnnouncement(doc),
                               tooltip: 'Edit',
                             ),
@@ -742,6 +799,9 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                                 builder: (context) => AlertDialog(
                                   title: Text('Delete Announcement'),
                                   content: Text('Are you sure you want to delete this announcement?'),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context),
@@ -776,7 +836,7 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                                   Text(doc['description']),
                                   SizedBox(height: 16),
                                   Text(
-                                    'Posted on ${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                                    'Posted on ${DateFormat('MMM dd, yyyy').format(date)}',
                                     style: TextStyle(
                                       color: Colors.grey,
                                       fontSize: 12,
@@ -784,6 +844,9 @@ class _AnnouncementsTabState extends State<_AnnouncementsTab> {
                                   ),
                                 ],
                               ),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             actions: [
                               TextButton(
@@ -818,6 +881,8 @@ class _PollsTabState extends State<_PollsTab> {
     TextEditingController(),
   ];
   bool _isCreateExpanded = false;
+  bool _isEditing = false;
+  String? _editingId;
   List<DocumentSnapshot> votes = [];
   Map<String, List<String>> votesByOption = {};
 
@@ -836,16 +901,51 @@ class _PollsTabState extends State<_PollsTab> {
     }
   }
 
-  @override
-  void dispose() {
-    _questionController.dispose();
+  void _clearForm() {
+    _questionController.clear();
+    for (var controller in _optionControllers) {
+      controller.clear();
+    }
+    setState(() {
+      _isEditing = false;
+      _editingId = null;
+      _isCreateExpanded = false;
+    });
+  }
+
+  void _editPoll(DocumentSnapshot poll) {
+    _questionController.text = poll['question'];
+    // Clear existing controllers
     for (var controller in _optionControllers) {
       controller.dispose();
     }
-    super.dispose();
+    _optionControllers.clear();
+    // Add controllers for existing options
+    for (var option in poll['options']) {
+      var controller = TextEditingController(text: option);
+      _optionControllers.add(controller);
+    }
+    setState(() {
+      _isEditing = true;
+      _editingId = poll.id;
+      _isCreateExpanded = true;
+    });
   }
 
-  Future<void> _createPoll() async {
+  Future<void> _deletePoll(String id) async {
+    try {
+      await FirebaseFirestore.instance.collection('polls').doc(id).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Poll deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting poll: $e')),
+      );
+    }
+  }
+
+  Future<void> _savePoll() async {
     if (_questionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter a question')),
@@ -866,26 +966,34 @@ class _PollsTabState extends State<_PollsTab> {
     }
 
     try {
-      await FirebaseFirestore.instance.collection('polls').add({
+      final data = {
         'question': _questionController.text.trim(),
         'options': options,
         'endDate': Timestamp.fromDate(
           DateTime.now().add(Duration(days: 7)),
         ),
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
 
-      _questionController.clear();
-      for (var controller in _optionControllers) {
-        controller.clear();
+      if (_isEditing && _editingId != null) {
+        await FirebaseFirestore.instance
+            .collection('polls')
+            .doc(_editingId)
+            .update(data);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Poll updated successfully')),
+        );
+      } else {
+        await FirebaseFirestore.instance.collection('polls').add(data);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Poll created successfully')),
+        );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Poll created successfully')),
-      );
+      _clearForm();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating poll: $e')),
+        SnackBar(content: Text('Error saving poll: $e')),
       );
     }
   }
@@ -937,7 +1045,9 @@ class _PollsTabState extends State<_PollsTab> {
                         Expanded(
                           child: Text(
                             poll['question'],
-                            style: Theme.of(context).textTheme.titleLarge,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -949,7 +1059,10 @@ class _PollsTabState extends State<_PollsTab> {
                     SizedBox(height: 24),
                     Text(
                       'Total Votes: ${votes.length}',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: 16),
                     ...votesByOption.entries.map((entry) {
@@ -960,18 +1073,34 @@ class _PollsTabState extends State<_PollsTab> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${entry.key} (${entry.value.length} votes - ${percentage.toStringAsFixed(1)}%)',
-                            style: Theme.of(context).textTheme.titleSmall,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.key,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${entry.value.length} votes (${percentage.toStringAsFixed(1)}%)',
+                                style: TextStyle(
+                                  color: AppTheme.primaryBlue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 8),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: percentage / 100,
-                              backgroundColor: Theme.of(context).dividerColor,
+                              backgroundColor: AppTheme.lightGrey,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).primaryColor,
+                                AppTheme.primaryBlue,
                               ),
                               minHeight: 8,
                             ),
@@ -987,7 +1116,10 @@ class _PollsTabState extends State<_PollsTab> {
                                     voter,
                                     style: TextStyle(fontSize: 12),
                                   ),
-                                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                  backgroundColor: AppTheme.primaryBlue.withOpacity(0.1),
+                                  labelStyle: TextStyle(
+                                    color: AppTheme.primaryBlue,
+                                  ),
                                 );
                               }).toList(),
                             ),
@@ -1007,6 +1139,15 @@ class _PollsTabState extends State<_PollsTab> {
   }
 
   @override
+  void dispose() {
+    _questionController.dispose();
+    for (var controller in _optionControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -1014,12 +1155,26 @@ class _PollsTabState extends State<_PollsTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: ExpansionTile(
               title: Text(
-                'Create Poll',
-                style: Theme.of(context).textTheme.titleLarge,
+                _isEditing ? 'Edit Poll' : 'Create Poll',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              leading: Icon(Icons.add_circle_outline),
+              leading: Icon(
+                _isEditing ? Icons.edit : Icons.add_circle_outline,
+                color: AppTheme.primaryBlue,
+              ),
+              initiallyExpanded: _isCreateExpanded,
+              onExpansionChanged: (expanded) {
+                if (!expanded) _clearForm();
+              },
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -1028,12 +1183,21 @@ class _PollsTabState extends State<_PollsTab> {
                     children: [
                       TextField(
                         controller: _questionController,
-                        decoration: AppTheme.inputDecoration('Question', hint: 'Enter your poll question'),
+                        decoration: InputDecoration(
+                          labelText: 'Question',
+                          hintText: 'Enter your poll question',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: Icon(Icons.question_mark),
+                        ),
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Options',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       SizedBox(height: 8),
                       ...List.generate(
@@ -1045,9 +1209,13 @@ class _PollsTabState extends State<_PollsTab> {
                               Expanded(
                                 child: TextField(
                                   controller: _optionControllers[index],
-                                  decoration: AppTheme.inputDecoration(
-                                    'Option ${index + 1}',
-                                    hint: 'Enter option ${index + 1}',
+                                  decoration: InputDecoration(
+                                    labelText: 'Option ${index + 1}',
+                                    hintText: 'Enter option ${index + 1}',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    prefixIcon: Icon(Icons.radio_button_unchecked),
                                   ),
                                 ),
                               ),
@@ -1067,9 +1235,26 @@ class _PollsTabState extends State<_PollsTab> {
                         label: Text('Add Option'),
                       ),
                       SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _createPoll,
-                        child: Text('Create Poll'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _clearForm,
+                            icon: Icon(Icons.clear),
+                            label: Text('Clear'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _savePoll,
+                            icon: Icon(_isEditing ? Icons.save : Icons.send),
+                            label: Text(_isEditing ? 'Update' : 'Create'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1078,6 +1263,13 @@ class _PollsTabState extends State<_PollsTab> {
             ),
           ),
           SizedBox(height: 16),
+          Text(
+            'Active Polls',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -1085,14 +1277,46 @@ class _PollsTabState extends State<_PollsTab> {
                   .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return CircularProgressIndicator();
-                
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.poll_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'No polls yet',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     var poll = snapshot.data!.docs[index];
+                    var endDate = (poll['endDate'] as Timestamp).toDate();
+                    var createdAt = (poll['createdAt'] as Timestamp).toDate();
+
                     return Card(
                       margin: EdgeInsets.only(bottom: 8),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: InkWell(
                         onTap: () => _showPollDetails(poll),
                         child: Padding(
@@ -1106,67 +1330,87 @@ class _PollsTabState extends State<_PollsTab> {
                                   Expanded(
                                     child: Text(
                                       poll['question'],
-                                      style: Theme.of(context).textTheme.titleMedium,
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete),
-                                    onPressed: () {
-                                      poll.reference.delete();
-                                    },
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.edit, color: AppTheme.primaryBlue),
+                                        onPressed: () => _editPoll(poll),
+                                        tooltip: 'Edit',
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () => showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Text('Delete Poll'),
+                                            content: Text('Are you sure you want to delete this poll?'),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context),
+                                                child: Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  _deletePoll(poll.id);
+                                                },
+                                                child: Text(
+                                                  'Delete',
+                                                  style: TextStyle(color: Colors.red),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        tooltip: 'Delete',
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                               SizedBox(height: 8),
                               Text(
-                                'Total Votes: ${votes.length}',
-                                style: Theme.of(context).textTheme.titleMedium,
+                                'Created on ${DateFormat('MMM dd, yyyy').format(createdAt)}',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Ends on ${DateFormat('MMM dd, yyyy').format(endDate)}',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
                               ),
                               SizedBox(height: 16),
-                              ...votesByOption.entries.map((entry) {
-                                final percentage = votes.isEmpty
-                                    ? 0.0
-                                    : (entry.value.length / votes.length) * 100;
-                                
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${entry.key} (${entry.value.length} votes - ${percentage.toStringAsFixed(1)}%)',
-                                      style: Theme.of(context).textTheme.titleSmall,
+                              StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('polls')
+                                    .doc(poll.id)
+                                    .collection('votes')
+                                    .snapshots(),
+                                builder: (context, votesSnapshot) {
+                                  final totalVotes = votesSnapshot.data?.docs.length ?? 0;
+                                  return Text(
+                                    'Total Votes: $totalVotes',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryBlue,
                                     ),
-                                    SizedBox(height: 8),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: percentage / 100,
-                                        backgroundColor: Theme.of(context).dividerColor,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Theme.of(context).primaryColor,
-                                        ),
-                                        minHeight: 8,
-                                      ),
-                                    ),
-                                    if (entry.value.isNotEmpty) ...[
-                                      SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: entry.value.map((voter) {
-                                          return Chip(
-                                            label: Text(
-                                              voter,
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                    SizedBox(height: 16),
-                                  ],
-                                );
-                              }).toList(),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -1570,28 +1814,19 @@ class _IssuesTabState extends State<_IssuesTab> {
   }
 
   Future<void> _checkAndUpdateMissingDates() async {
-  final QuerySnapshot snapshot = await FirebaseFirestore.instance
-      .collection('issues')
-      .where('createdAt', isNull: true)
-      .get();
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('issues')
+        .where('createdAt', isNull: true)
+        .get();
 
-  final batch = FirebaseFirestore.instance.batch();
-
-  for (final doc in snapshot.docs) {
-    final data = doc.data() as Map<String, dynamic>;
-    if (data.containsKey('timestamp')) {
-      batch.update(doc.reference, {
-        'createdAt': data['timestamp'],
-      });
-    } else {
-      batch.update(doc.reference, {
-        'createdAt': FieldValue.serverTimestamp(),
+    for (final doc in snapshot.docs) {
+      await doc.reference.update({
+        'createdAt': doc.data().toString().contains('timestamp') 
+            ? doc['timestamp']  // Use existing timestamp if available
+            : FieldValue.serverTimestamp(),  // Otherwise use current time
       });
     }
   }
-
-  await batch.commit();
-}
 
   final List<String> _statusOptions = [
     'reported',
@@ -1752,11 +1987,9 @@ class _IssuesTabState extends State<_IssuesTab> {
               ),
               SizedBox(height: 8),
               Text(
-                data?['createdAt'] != null 
-      ? DateFormat('MMM dd, yyyy HH:mm').format((data!['createdAt'] as Timestamp).toDate())
-      : data?['timestamp'] != null
-          ? DateFormat('MMM dd, yyyy HH:mm').format((data!['timestamp'] as Timestamp).toDate())
-          : 'Unknown date'
+                data?['createdAt'] != null
+                    ? DateFormat('MMM dd, yyyy HH:mm').format((data!['createdAt'] as Timestamp).toDate())
+                    : 'Unknown date'
               ),
               if (data != null && data['imageUrl'] != null) ...[
                 SizedBox(height: 16),
