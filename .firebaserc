@@ -1,7 +1,16 @@
 {
   "projects": {
+<<<<<<< HEAD
     "dev": "madinatyconnect"
   },
   "targets": {},
   "etags": {}
 }
+=======
+    "staging": "madinatyconnect",
+    "default": "madinatyconnect"
+  },
+  "targets": {},
+  "etags": {}
+}
+>>>>>>> 78e47c577d97fa59cf85a64075f92b981aa52501

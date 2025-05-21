@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/app_localizations.dart';
 import 'comment_section.dart'; // Make sure this is created in widgets/
 
 class AnnouncementCard extends StatelessWidget {
@@ -21,6 +22,7 @@ class AnnouncementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedDate = DateFormat('dd MMM yyyy').format(date);
+    final localizations = AppLocalizations.of(context);
 
     return Card(
       margin: EdgeInsets.all(8),
@@ -37,16 +39,16 @@ class AnnouncementCard extends StatelessWidget {
             Text(content),
             SizedBox(height: 8),
             Text(formattedDate, style: TextStyle(color: Colors.grey)),
-            if (attachments != null) ...[
+            if (attachments != null && attachments!.isNotEmpty) ...[
               SizedBox(height: 8),
               Text(
-                'Attachments:',
+                localizations.translate('attachments'),
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               ...attachments!.map(
                 (url) => TextButton(
                   onPressed: () => launch(url),
-                  child: Text('View Attachment'),
+                  child: Text(localizations.translate('view_attachment')),
                 ),
               ),
             ],
