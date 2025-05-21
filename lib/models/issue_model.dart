@@ -46,7 +46,8 @@ class IssueReport {
       'lat': lat,
       'lng': lng,
       'status': status,
-      'submittedAt': submittedAt,
+      'createdAt': Timestamp.fromDate(submittedAt), // Always use createdAt
+      'timestamp': Timestamp.fromDate(submittedAt), // Keep for backward compatibility
     };
   }
 }

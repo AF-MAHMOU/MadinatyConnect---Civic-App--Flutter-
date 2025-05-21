@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../utils/app_localizations.dart';
 import '../../../services/text_moderation_service.dart';
+import 'dart:convert'; // ✅ Add this line
 
 class CommentSection extends StatefulWidget {
   final String announcementId;
@@ -26,6 +27,21 @@ class _CommentSectionState extends State<CommentSection> {
     super.initState();
     _fetchUserName();
   }
+
+String _extractFilteredMessage(dynamic response) {
+  if (response is String) {
+    try {
+      final parsed = Map<String, dynamic>.from(
+          response.toString().startsWith('{') ? jsonDecode(response) : {"result": response});
+      return parsed['result'] ?? response.toString();
+    } catch (_) {
+      return response.toString();
+    }
+  } else if (response is Map && response.containsKey('result')) {
+    return response['result'].toString();
+  }
+  return response.toString();
+}
 
   Future<void> _fetchUserName() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -56,7 +72,8 @@ class _CommentSectionState extends State<CommentSection> {
       }
 
       // Filter profanity from the comment
-      final filteredText = await TextModerationService.filterProfanity(text);
+final filteredRaw = await TextModerationService.filterProfanity(text);
+final filteredText = _extractFilteredMessage(filteredRaw);
 
       await FirebaseFirestore.instance
           .collection('announcements/${widget.announcementId}/comments')

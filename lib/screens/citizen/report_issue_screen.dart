@@ -19,8 +19,21 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   final ImagePicker _picker = ImagePicker();
   final _mapController = MapController();
 
+  // Madinaty coordinates (30° 5' 47.9580'' N, 31° 39' 45.1188'' E)
+  final LatLng _madinatyCoordinates = LatLng(30.096655, 31.662533);
   LatLng? _selectedLocation;
   XFile? _issueImage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set Madinaty as default selected location
+    _selectedLocation = _madinatyCoordinates;
+    // Center map on Madinaty after a small delay to ensure map is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapController.move(_madinatyCoordinates, 15); // Higher zoom level for better precision
+    });
+  }
 
   @override
   void dispose() {
@@ -76,8 +89,8 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                 child: FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    center: LatLng(30.0444, 31.2357), // Cairo
-                    zoom: 13,
+                    center: _madinatyCoordinates, // Default to Madinaty
+                    zoom: 15, // Higher zoom level for better precision
                     onTap: (tapPosition, point) {
                       setState(() {
                         _selectedLocation = point;
@@ -90,19 +103,18 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                       userAgentPackageName: 'com.example.madinatyconnect',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    if (_selectedLocation != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _selectedLocation!,
-                            child: Icon(
-                              Icons.location_pin,
-                              size: 40,
-                              color: Theme.of(context).primaryColor,
-                            ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _selectedLocation ?? _madinatyCoordinates,
+                          child: Icon(
+                            Icons.location_pin,
+                            size: 40,
+                            color: Theme.of(context).primaryColor,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -126,9 +138,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   }
 
   Future<void> _submitIssue() async {
-    if (_descriptionController.text.isEmpty || _selectedLocation == null) {
+    if (_descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all fields')),
+        SnackBar(content: Text('Please describe the issue')),
       );
       return;
     }
@@ -151,11 +163,15 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
 
       await _firestore.collection('issues').add({
         'description': _descriptionController.text,
-        'location': GeoPoint(_selectedLocation!.latitude, _selectedLocation!.longitude),
+        'location': GeoPoint(
+          _selectedLocation?.latitude ?? _madinatyCoordinates.latitude,
+          _selectedLocation?.longitude ?? _madinatyCoordinates.longitude,
+        ),
         'imageUrl': imageUrl,
         'status': 'pending',
         'creatorId': userId,
-        'timestamp': FieldValue.serverTimestamp(),
+         'createdAt': FieldValue.serverTimestamp(), // Use createdAt instead of timestamp
+    'timestamp': FieldValue.serverTimestamp(), // Keep for backward compatibility
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +181,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       _descriptionController.clear();
       setState(() {
         _issueImage = null;
-        _selectedLocation = null;
+        // Reset to Madinaty coordinates after submission
+        _selectedLocation = _madinatyCoordinates;
+        _mapController.move(_madinatyCoordinates, 15);
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -10,6 +10,7 @@ import 'admin_chat_requests.dart';
 import '../../utils/app_localizations.dart';
 import '../../main.dart';
 import '../chat_screen.dart';
+import 'admin_create_announcement_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -21,7 +22,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   bool _isLoading = false;
 
   final List<Widget> _screens = [
-    _OverviewTab(), // New overview tab
+    _OverviewTab(),
+    AdminCreateAnnouncementScreen(), // New overview tab
     _PollsTab(),
     _AdsApprovalTab(),
     _IssuesTab(),
@@ -34,12 +36,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 0:
         return localizations.translate('overview');
       case 1:
-        return localizations.translate('polls');
+         return localizations.translate('announcements');
       case 2:
-        return localizations.translate('ads');
+        return localizations.translate('polls');
       case 3:
-        return localizations.translate('issues');
+        return localizations.translate('ads');
       case 4:
+        return localizations.translate('issues');
+      case 5:
         return localizations.translate('users');
       default:
         return localizations.translate('admin_dashboard');
@@ -175,7 +179,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           currentIndex: _currentTab,
           selectedItemColor: AppTheme.primaryBlue,
           unselectedItemColor: Colors.grey,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+    ? Colors.grey[900]
+    : Colors.white,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
           selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
@@ -183,6 +189,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard),
               label: localizations.translate('overview'),
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.announcement),
+              label: localizations.translate('announcements'),
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.poll),
@@ -1560,19 +1570,28 @@ class _IssuesTabState extends State<_IssuesTab> {
   }
 
   Future<void> _checkAndUpdateMissingDates() async {
-    final QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('issues')
-        .where('createdAt', isNull: true)
-        .get();
+  final QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('issues')
+      .where('createdAt', isNull: true)
+      .get();
 
-    for (final doc in snapshot.docs) {
-      await doc.reference.update({
-        'createdAt': doc.data().toString().contains('timestamp') 
-            ? doc['timestamp']  // Use existing timestamp if available
-            : FieldValue.serverTimestamp(),  // Otherwise use current time
+  final batch = FirebaseFirestore.instance.batch();
+
+  for (final doc in snapshot.docs) {
+    final data = doc.data() as Map<String, dynamic>;
+    if (data.containsKey('timestamp')) {
+      batch.update(doc.reference, {
+        'createdAt': data['timestamp'],
+      });
+    } else {
+      batch.update(doc.reference, {
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
   }
+
+  await batch.commit();
+}
 
   final List<String> _statusOptions = [
     'reported',
@@ -1733,9 +1752,11 @@ class _IssuesTabState extends State<_IssuesTab> {
               ),
               SizedBox(height: 8),
               Text(
-                data?['createdAt'] != null
-                    ? DateFormat('MMM dd, yyyy HH:mm').format((data!['createdAt'] as Timestamp).toDate())
-                    : 'Unknown date'
+                data?['createdAt'] != null 
+      ? DateFormat('MMM dd, yyyy HH:mm').format((data!['createdAt'] as Timestamp).toDate())
+      : data?['timestamp'] != null
+          ? DateFormat('MMM dd, yyyy HH:mm').format((data!['timestamp'] as Timestamp).toDate())
+          : 'Unknown date'
               ),
               if (data != null && data['imageUrl'] != null) ...[
                 SizedBox(height: 16),

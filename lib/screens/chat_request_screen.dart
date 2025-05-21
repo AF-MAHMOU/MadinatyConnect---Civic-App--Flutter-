@@ -161,7 +161,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                             ),
                           ],
                         ),
-                        trailing: request.status == 'completed'
+                        trailing: request.status == 'completed' || request.status == 'rejected'
                             ? IconButton(
                                 icon: Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () => showDialog(

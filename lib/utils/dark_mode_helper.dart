@@ -5,6 +5,8 @@ class DarkModeHelper {
   static Widget addDarkModeToggle(Widget screen) {
     return _DarkModeWrapper(child: screen);
   }
+
+  
 }
 
 class _DarkModeWrapper extends StatelessWidget {
@@ -27,6 +29,7 @@ class _DarkModeWrapper extends StatelessWidget {
     if (appBar == null || appBar is! AppBar) {
       return scaffold;
     }
+    
 
     return Scaffold(
       key: scaffold.key,
@@ -104,4 +107,5 @@ class _DarkModeWrapper extends StatelessWidget {
       restorationId: scaffold.restorationId,
     );
   }
+
 }
